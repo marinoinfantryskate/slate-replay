@@ -16,6 +16,9 @@ export const api = {
   state: () => call<DailyState>("/api/daily"),
   start: () => call<DailyState>("/api/daily/start", { method: "POST" }),
   submit: () => call<DailyState>("/api/daily/submit", { method: "POST" }),
+  testReset: () => call<DailyState>("/api/test/reset", { method: "POST" }),
+  testDay: (move: "next" | "today") =>
+    call<DailyState>("/api/test/day", { method: "POST", body: JSON.stringify({ move }) }),
   pick: (slot: number, market: Market, selection: Selection | null) =>
     call<{ ok: true }>("/api/daily/pick", { method: "PUT", body: JSON.stringify({ slot, market, selection }) }),
 };

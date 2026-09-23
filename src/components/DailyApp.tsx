@@ -6,6 +6,7 @@ import type { PickView } from "@/lib/view";
 import { api, type DailyState, type PlayingState } from "./api";
 import GameCard from "./GameCard";
 import Reveal from "./Reveal";
+import { DesignSwitcher } from "./design";
 import { formatClock } from "@/lib/grade";
 
 export default function DailyApp() {
@@ -40,10 +41,10 @@ export default function DailyApp() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-xl px-4 pb-24">
+    <main className={`mx-auto w-full max-w-xl px-4 ${state?.testTools ? "pb-36" : "pb-24"}`}>
       <Header state={state} />
       {error && (
-        <div className="mt-4 rounded-lg border border-bad/40 bg-bad/10 px-3 py-2 text-sm text-bad">
+        <div className="mt-4 rounded-[var(--radius-sm)] border border-bad/40 bg-bad/10 px-3 py-2 text-sm text-bad">
           {error}{" "}
           <button className="underline" onClick={() => load()}>
             Retry
@@ -52,8 +53,10 @@ export default function DailyApp() {
       )}
       {!state && !error && <p className="mt-16 text-center text-muted">Loading today&apos;s slate…</p>}
       {state?.status === "new" && <Home state={state} onStart={start} busy={busy} />}
-      {state?.status === "playing" && <Play state={state} onLocked={load} />}
+      {state?.status === "playing" && <Play key={state.date} state={state} onLocked={load} />}
       {state?.status === "locked" && <Reveal state={state} />}
+      {state?.testTools && <TestBar state={state} load={load} />}
+      {state?.testTools && <DesignSwitcher />}
       <footer className="mt-12 text-center text-[11px] leading-relaxed text-muted">
         The information used here was obtained free of charge from and is copyrighted by Retrosheet. Interested
         parties may contact Retrosheet at{" "}
@@ -66,11 +69,37 @@ export default function DailyApp() {
   );
 }
 
+function TestBar({ state, load }: { state: DailyState; load: (p?: Promise<DailyState>) => Promise<void> }) {
+  const offset = state.testTools?.dayOffset ?? 0;
+  const btn = "rounded-md border border-warn/40 px-2.5 py-1 hover:bg-warn/10";
+  return (
+    <div className="mt-8 rounded-[var(--radius)] border border-dashed border-warn/50 p-3 text-xs text-warn">
+      <div className="mb-2">
+        Testing tools · playing {state.date}
+        {offset > 0 && ` (${offset} day${offset > 1 ? "s" : ""} ahead)`}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button className={btn} onClick={() => load(api.testReset())}>
+          Replay today
+        </button>
+        <button className={btn} onClick={() => load(api.testDay("next"))}>
+          Next day →
+        </button>
+        {offset > 0 && (
+          <button className={btn} onClick={() => load(api.testDay("today"))}>
+            Back to today
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Header({ state }: { state: DailyState | null }) {
   return (
     <header className="flex items-center justify-between py-4">
       <div className="flex items-baseline gap-2">
-        <span className="text-lg font-bold tracking-tight">Slate Replay</span>
+        <span className="font-display text-lg font-bold tracking-tight">Slate Replay</span>
         {state && <span className="font-mono text-sm text-muted">#{state.day}</span>}
       </div>
       {state && (
@@ -87,7 +116,7 @@ function Header({ state }: { state: DailyState | null }) {
 function Home({ state, onStart, busy }: { state: DailyState; onStart: () => void; busy: boolean }) {
   return (
     <section className="mt-6">
-      <h1 className="text-3xl font-bold leading-tight tracking-tight">
+      <h1 className="font-display text-4xl font-bold leading-tight tracking-tight">
         {state.gameCount} real games.
         <br />
         Real closing odds.
@@ -106,7 +135,7 @@ function Home({ state, onStart, busy }: { state: DailyState; onStart: () => void
       <button
         onClick={onStart}
         disabled={busy}
-        className="mt-8 w-full rounded-xl bg-accent py-4 text-lg font-semibold text-accent-ink transition active:scale-[0.99] disabled:opacity-60"
+        className="mt-8 w-full rounded-[var(--radius)] bg-accent py-4 text-lg font-semibold text-accent-ink transition active:scale-[0.99] disabled:opacity-60"
       >
         {busy ? "Opening…" : "Play today’s slate"}
       </button>
@@ -180,7 +209,7 @@ function Play({ state, onLocked }: { state: PlayingState; onLocked: (p: Promise<
       <div className="sticky top-0 z-10 -mx-4 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div
-            className={`font-mono text-3xl font-semibold tnum ${expired ? "text-bad" : urgent ? "text-warn" : ""}`}
+            className={`timer font-mono text-3xl font-semibold tnum ${expired ? "text-bad" : urgent ? "text-warn" : ""}`}
             aria-live="off"
           >
             {formatClock(left)}
@@ -194,7 +223,7 @@ function Play({ state, onLocked }: { state: PlayingState; onLocked: (p: Promise<
           <button
             onClick={submit}
             disabled={submitting || expired}
-            className="rounded-lg bg-accent px-4 py-2 font-semibold text-accent-ink disabled:opacity-50"
+            className="rounded-[var(--radius-sm)] bg-accent px-4 py-2 font-semibold text-accent-ink disabled:opacity-50"
           >
             {expired ? "Locking…" : submitting ? "Locking…" : "Lock in"}
           </button>

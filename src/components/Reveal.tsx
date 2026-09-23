@@ -9,7 +9,7 @@ import type { LockedState } from "./api";
 import { conditionsText } from "./GameCard";
 
 const BADGE: Record<Outcome, { text: string; cls: string }> = {
-  win: { text: "Win", cls: "bg-accent/15 text-accent" },
+  win: { text: "Win", cls: "bg-good/15 text-good" },
   loss: { text: "Loss", cls: "bg-bad/15 text-bad" },
   push: { text: "Push · void", cls: "bg-panel-2 text-muted" },
   no_pick: { text: "No pick", cls: "bg-bad/10 text-bad" },
@@ -25,11 +25,11 @@ export default function Reveal({ state }: { state: LockedState }) {
 
   return (
     <section className="mt-2">
-      <div className="rounded-2xl border border-line bg-panel p-5 text-center">
+      <div className="card rounded-[var(--radius)] border border-line bg-panel p-5 text-center">
         <div className="text-sm text-muted">
           {state.lockReason === "timer" ? "Time ran out — picks locked" : `Locked with ${formatClock(state.timeLeftMs)} left`}
         </div>
-        <div className="mt-1 font-mono text-5xl font-bold tnum">
+        <div className="mt-1 font-display text-6xl font-bold tnum">
           {correct}/{graded}
         </div>
         <div className="mt-2 text-3xl tracking-widest" aria-label="Results by game">
@@ -65,10 +65,10 @@ function ShareButton({ text }: { text: string }) {
   };
   return (
     <>
-      <pre className="mx-auto mt-4 w-fit whitespace-pre-wrap rounded-lg bg-panel-2 px-3 py-2 text-left font-mono text-xs text-muted">
+      <pre className="mx-auto mt-4 w-fit whitespace-pre-wrap rounded-[var(--radius-sm)] bg-panel-2 px-3 py-2 text-left font-mono text-xs text-muted">
         {text}
       </pre>
-      <button onClick={share} className="mt-3 w-full rounded-xl bg-accent py-3 font-semibold text-accent-ink">
+      <button onClick={share} className="mt-3 w-full rounded-[var(--radius)] bg-accent py-3 font-semibold text-accent-ink">
         {copied ? "Copied!" : "Share result"}
       </button>
     </>
@@ -103,7 +103,7 @@ function GameResult({ game, picks }: { game: RevealedGame; picks: PickView[] }) 
   };
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-line bg-panel">
+    <article className="card overflow-hidden rounded-[var(--radius)] border border-line bg-panel">
       <div className="px-4 pt-4">
         <div className="text-xs text-muted">
           {longDate(game.date)} · {game.park.name} · {conditionsText(game.conditions)}
@@ -129,7 +129,7 @@ function GameResult({ game, picks }: { game: RevealedGame; picks: PickView[] }) 
                 const won = side === "away" ? away.r > home.r : home.r > away.r;
                 return (
                   <tr key={side} className={won ? "" : "text-muted"}>
-                    <td className="py-1 pr-2 font-sans font-semibold">{game[side].abbr}</td>
+                    <td className="py-1 pr-2 font-display font-semibold">{game[side].abbr}</td>
                     {Array.from({ length: innings }, (_, i) => (
                       <td key={i} className="py-1 text-center">
                         {t.line[i] ?? "x"}

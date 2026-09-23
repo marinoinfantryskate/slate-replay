@@ -1,12 +1,13 @@
 import "server-only";
 import { and, eq, sql } from "drizzle-orm";
 import { getDb, schema, type DB } from "@/db";
-import { addDays, dayNumber, LOCK_GRACE_MS, slateDateFor } from "@/lib/day";
+import { addDays, dayNumber, LOCK_GRACE_MS } from "@/lib/day";
 import { gradePick, isGraded, oddsFor, shareText } from "@/lib/grade";
 import { getGame, getPool } from "@/lib/pool";
 import { dailySeed, drawSlate } from "@/lib/slate";
 import { MARKETS, type Market, type Outcome, type Selection } from "@/lib/types";
 import { publicGame, revealedGame, type PickView } from "@/lib/view";
+import { currentSlateDate, dayOffset, testToolsEnabled } from "./testing";
 import type { User } from "./user";
 
 type Entry = typeof schema.entries.$inferSelect;
@@ -121,8 +122,13 @@ function streakView(user: User | null, today: string) {
 
 export async function dailyState(user: User | null, siteUrl?: string) {
   const db = await getDb();
-  const date = slateDateFor();
-  const base = { day: dayNumber(date), date, gameCount: 0 };
+  const date = await currentSlateDate();
+  const base = {
+    day: dayNumber(date),
+    date,
+    gameCount: 0,
+    testTools: testToolsEnabled ? { dayOffset: await dayOffset() } : null,
+  };
   const gameIds = await ensureSlate(db, date);
   base.gameCount = gameIds.length;
 
@@ -168,7 +174,7 @@ export type DailyState = Awaited<ReturnType<typeof dailyState>>;
 
 export async function startDaily(user: User) {
   const db = await getDb();
-  const date = slateDateFor();
+  const date = await currentSlateDate();
   await ensureSlate(db, date);
   // Idempotent: a second start (refresh, other device) keeps the original started_at.
   await db
@@ -178,7 +184,7 @@ export async function startDaily(user: User) {
 }
 
 async function openEntry(db: DB, user: User) {
-  const date = slateDateFor();
+  const date = await currentSlateDate();
   const gameIds = await ensureSlate(db, date);
   const entry = await findEntry(db, user.id, date);
   if (!entry) throw new GameError("No slate started today", 409);
@@ -209,4 +215,13 @@ export async function submitDaily(user: User) {
   const db = await getDb();
   const { entry, gameIds } = await openEntry(db, user);
   await lockEntry(db, entry, "submit", gameIds);
+}
+
+/** Testing only: delete today's entry so the slate can be played again. */
+export async function resetDaily(user: User) {
+  const db = await getDb();
+  const entry = await findEntry(db, user.id, await currentSlateDate());
+  if (!entry) return;
+  await db.delete(schema.picks).where(eq(schema.picks.entryId, entry.id));
+  await db.delete(schema.entries).where(eq(schema.entries.id, entry.id));
 }
